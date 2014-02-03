@@ -1,6 +1,14 @@
 <?php
 
 /**
+* Only import worker if it is not already loaded. Multiple imports can happen
+* because relationshipACL and relationshipEvenACL modules uses same worker. 
+*/
+if(class_exists('RelationshipACLQueryWorker') === false) {
+  require_once "RelationshipACLQueryWorker.php";
+}
+
+/**
 * relationshipContributionACL module helper worker.
 *
 * Adds new Contribution page owner field to admin form Title tab.
@@ -79,6 +87,56 @@ class RelationshipContributionACLWorker {
   }
   
   /**
+  * Executed when Manage contribution pages page is built.
+  *
+  * Iterates 'row' array from template and removes Contribution pages where current logged in user does not have 
+  * editing rights. Editing rights are based on relationship tree.
+  *
+  * @param CRM_Contribute_Page_ContributionPage CiviCRM Page for Manage contribution pages page
+  */
+  public function pageRunHook(&$page) {
+    $template = $page->getTemplate();
+    $rows = $template->get_template_vars("rows");
+  
+    $this->filterContributionPageRows($rows);
+    
+    $page->assign("rows", $rows);
+  }
+  
+  /**
+  * Iterates rows array from template and removes Contribution pages where current logged in user does not have 
+  * editing rights. Editing rights are based on relationship tree. Contribution page owner is detemined from 
+  * this module custom civicrm_contribution_page_owner table.
+  *
+  * @param array $rows Array of Contribution pages
+  */
+  public function filterContributionPageRows(&$rows) {
+    $currentUserContactID = $this->getCurrentUserContactID();
+    
+    //Find all contact IDs the current logged in user has rights to edit through relationships
+    $worker = new RelationshipACLQueryWorker();
+    $allowedContactIDs = $worker->getContactIDsWithEditPermissions($currentUserContactID);
+    
+    //Array with Contribution page ID as key and owner contact ID as value
+    $ownerMap = $this->loadAllContributionPagesOwnerContactId();
+    
+    foreach ($rows as $eventID => &$row) {
+      //Skip Contribution pages that does not yet have owner info. These are always visible.
+      if(!array_key_exists($eventID, $ownerMap)) {
+        continue;
+      }
+      
+      //Get Contribution page owner contact ID from civicrm_contribution_page_owner table
+      $ownerContactID = $ownerMap[$eventID];
+      
+      //If logged in user contact ID is not allowed to edit Contribution page, remove page from array
+      if(!in_array($ownerContactID, $allowedContactIDs)) {
+        unset($rows[$eventID]);
+      }
+    }
+  }
+  
+  /**
   * Insert or updates contribution page owner contact id to civicrm_contribution_page_owner table.
   * Update is done if row already exists. Does nothing if $owner_contact_id is not number larger than zero.
   *
@@ -146,7 +204,7 @@ class RelationshipContributionACLWorker {
   }
   
   /**
-  * Loads contribution page owner contact id from civicrm_contribution_page_owner table.
+  * Loads single contribution page owner contact id from civicrm_contribution_page_owner table.
   *
   * @param string|int $contribution_page_id Contribution page id
   * @return int Contact id. Null if $contribution_page_id is not number larger than zero
@@ -165,6 +223,26 @@ class RelationshipContributionACLWorker {
     ";
     
     return (int) CRM_Core_DAO::singleValueQuery($sql);
+  }
+  
+  /**
+  * Loads all contribution pages owner contact ids from civicrm_contribution_page_owner table.
+  *
+  * @return array Associative array where key is Contribution page ID and value is contact ID.
+  */
+  public function loadAllContributionPagesOwnerContactId() {
+    $sql = "
+      SELECT contribution_page_id, owner_contact_id  
+      FROM civicrm_contribution_page_owner
+    ";
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    
+    $result = array();
+    while ($dao->fetch()) {
+      $result[$dao->contribution_page_id] = $dao->owner_contact_id;
+    }
+    
+    return $result;
   }
   
   /**
@@ -209,5 +287,25 @@ class RelationshipContributionACLWorker {
     ";
     
     return CRM_Core_DAO::singleValueQuery($sql);
+  }
+  
+  /**
+  * Returns current logged in user contact ID.
+  *
+  * @return int Contact ID
+  */
+  public function getCurrentUserContactID() {
+    global $user;
+    $userID = $user->uid;
+
+    $params = array(
+      'uf_id' => $userID,
+      'version' => 3
+    );
+    $result = civicrm_api( 'UFMatch','Get',$params );
+    $values = array_values ($result['values']);
+    $contact_id = $values[0]['contact_id'];
+    
+    return $contact_id;
   }
 }

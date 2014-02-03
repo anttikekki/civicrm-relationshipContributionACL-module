@@ -18,6 +18,18 @@ function relationshipContributionACL_civicrm_install() {
 }
 
 /**
+* Implemets CiviCRM 'pageRun' hook.
+*
+* @param CRM_Core_Page $page Current page.
+*/
+function relationshipContributionACL_civicrm_pageRun(&$page) {
+  if($page instanceof CRM_Contribute_Page_ContributionPage) {
+    $worker = new RelationshipContributionACLWorker();
+    $worker->pageRunHook($page);
+  }
+}
+
+/**
 * Implements CiviCRM 'buildForm' hook.
 *
 * @param string $formName Name of current form.
