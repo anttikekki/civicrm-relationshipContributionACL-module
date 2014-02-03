@@ -3,6 +3,21 @@
 require_once 'RelationshipContributionACLWorker.php';
 
 /**
+* Implements CiviCRM 'install' hook.
+*/
+function relationshipContributionACL_civicrm_install() {
+  $sql = "
+    CREATE TABLE IF NOT EXISTS civicrm_contribution_page_owner (
+      contribution_page_id int(10) unsigned NOT NULL COMMENT 'Contribution page id',
+      owner_contact_id int(10) unsigned NOT NULL COMMENT 'Contribution page owner contact id',
+      PRIMARY KEY (`contribution_page_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  ";
+  
+  CRM_Core_DAO::executeQuery($sql);
+}
+
+/**
 * Implements CiviCRM 'buildForm' hook.
 *
 * @param string $formName Name of current form.
