@@ -5,6 +5,10 @@ class RelationshipContributionACLWorker {
   public function loadOwnerContactId($contribution_page_id) {
     $contribution_page_id = (int) $contribution_page_id;
     
+    if($contribution_page_id == 0) {
+      return null;
+    }
+    
     $sql = "
       SELECT owner_contact_id  
       FROM civicrm_contribution_page_owner
@@ -61,6 +65,10 @@ class RelationshipContributionACLWorker {
   }
   
   public function getContactIdForName($contactName) {
+    if(empty($contactName)) {
+      return 0;
+    }
+    
     $sql = "
       SELECT id  
       FROM civicrm_contact
@@ -72,6 +80,10 @@ class RelationshipContributionACLWorker {
   
   public function getContactNameForId($contactId) {
     $contactId = (int) $contactId;
+    
+    if($contactId == 0) {
+      return null;
+    }
     
     $sql = "
       SELECT sort_name  
