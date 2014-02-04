@@ -1,6 +1,11 @@
 civicrm-relationshipContributionACL-module
 ==========================================
-[CiviCRM] (https://civicrm.org/) module to use contact relationships edit rights to determine Contribution page visibility and editability in CiviCRM administration screens. This module adds new field to Contribution admin screen to store owner information.
+[CiviCRM] (https://civicrm.org/) module to use contact relationships edit rights to determine Contribution page visibility and editability in CiviCRM administration screens. 
+
+This module:
+* Adds new field to Contribution admin screen to store owner information
+* Filters Manage Contribution pages screen rows to remove pages that user has no rights to edit
+* Inserts Contribution page owner info to every contribution custom field that stores owner contact info
 
 This module uses relationships instead of groups or ACL to limit visibility and editability. The whole relationship tree is searched and all Contribution pages that are owned by contacts to where user has edit permissions through relationships are made visible and editable. All contact types are searched.
 
@@ -19,7 +24,9 @@ Contribution pages
 With this module User 1 can see and edit Contribution page 2 but not Contribution page 1. Contribution page 2 is owned by Sub-organisation 2 that User 1 has edit rights. User 1 does not have edit rights to Organisation 1 so this Contribution page is invisible to user.
 
 ### Installation
-Create _com.github.anttikekki.relationshipContributionACL_ folder to CiviCRM extension folder and copy all files into it. Install and enable extension in administration.
+1. Create `com.github.anttikekki.relationshipContributionACL` folder to CiviCRM extension folder and copy all files into it. Install and enable extension in administration.
+2. Create custom field to COntributio that stores contact. This is used to sve contribution owner contact id.
+3. Insert row to this module configuration table `civicrm_relationshipContributionACL_config`. `config_key` column value is `contributionOwnerCustomGroupName` and `congif_value` column value is our Contribution custom field group title name.
 
 This module uses temporary tables in database so CiviCRM MySQL user has to have permissions to create these kind of tables.
 
