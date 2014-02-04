@@ -27,6 +27,14 @@ require_once "ContributionPageOwnerDAO.php";
 class RelationshipContributionACLWorker {
 
   /**
+  * Config key for civicrm_relationshipContributionACL_config table. This key 
+  * stores name of Contribution Custom field group that stores contribution owner contact id.
+  *
+  * @var string
+  */
+  protected $configKey_contributionOwnerCustomGroupName = "contributionOwnerCustomGroupName";
+
+  /**
   * Executed when Contribution admin page is built.
   *
   * Adds info of contribution page owner to JavaScript from 
@@ -116,8 +124,8 @@ class RelationshipContributionACLWorker {
       return;
     }
   
-    //Update custom field to COntribution page owner contact id
-    $worker = new CustomFieldHelper("Owner organisation");
+    //Update custom field to Contribution page owner contact id
+    $worker = new CustomFieldHelper($this->getContributionOwnerCustonGroupNameFromConfig());
     $worker->insertOrUpdateValue($contributionId, $ownerContactId);
   }
   
@@ -243,6 +251,22 @@ class RelationshipContributionACLWorker {
       SELECT sort_name  
       FROM civicrm_contact
       WHERE id = $contactId
+    ";
+    
+    return CRM_Core_DAO::singleValueQuery($sql);
+  }
+  
+  /**
+  * Return Contribution custom field group name that is used to store contribution 
+  * owner contact id.
+  *
+  * @return string Custom field group title name.
+  */
+  public function getContributionOwnerCustonGroupNameFromConfig() {
+    $sql = "
+      SELECT config_value  
+      FROM civicrm_relationshipContributionACL_config
+      WHERE config_key = '".$this->configKey_contributionOwnerCustomGroupName."'
     ";
     
     return CRM_Core_DAO::singleValueQuery($sql);
