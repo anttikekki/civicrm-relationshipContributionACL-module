@@ -9,6 +9,17 @@ if(class_exists('RelationshipACLQueryWorker') === false) {
 }
 
 /**
+* Only import worker if it is not already loaded. Multiple imports can happen
+* because relationshipACL and relationshipEvenACL modules uses same worker. 
+*/
+if(class_exists('CustomFieldHelper') === false) {
+  require_once "CustomFieldHelper.php";
+}
+
+require_once "ContributionPageOwnerDAO.php";
+
+
+/**
 * relationshipContributionACL module helper worker.
 *
 * Adds new Contribution page owner field to admin form Title tab.
@@ -28,7 +39,7 @@ class RelationshipContributionACLWorker {
     $this->checkContributionPageEditPermission($form);
   
     $contributionPageId = $form->get('id');
-    $ownerContactId = $this->loadOwnerContactId($contributionPageId);
+    $ownerContactId = ContributionPageOwnerDAO::loadOwnerContactId($contributionPageId);
     $contactName = $this->getContactNameForId($ownerContactId);
     
     //Add JavaScript that adds new "Owner contact" field to "Title" tab
@@ -80,12 +91,34 @@ class RelationshipContributionACLWorker {
   *
   * @param CRM_Contribute_DAO_ContributionPage $dao Dao that is used to save Contribution page
   */
-  public function postSaveHook(&$dao) {
+  public function contributionPagePostSaveHook(&$dao) {
     $contributionPageId = $dao->id;
     $ownerContactName = isset($_POST['ownerContactName']) ? $_POST['ownerContactName'] : NULL;
     
     $ownerContactId = $this->getContactIdForName($ownerContactName);
-    $this->insertOrUpdateOwnerContactId($contributionPageId, $ownerContactId);
+    ContributionPageOwnerDAO::insertOrUpdateOwnerContactId($contributionPageId, $ownerContactId);
+  }
+  
+  /**
+  * Executed when Contribution is saved to civicrm_contribution table.
+  *
+  * Updates contribution owner organisation custom field to Contribution page owner.
+  *
+  * @param CRM_Contribute_DAO_Contribution $dao Dao that is used to save Contribution
+  */
+  public function contributionPostSaveHook(&$dao) {
+    $contributionId = $dao->id;
+    $contributionPageId = $dao->contribution_page_id;
+    $ownerContactId = ContributionPageOwnerDAO::loadOwnerContactId($contributionPageId);
+    
+    //If Contribution page has no owner set then abort
+    if($ownerContactId == 0) {
+      return;
+    }
+  
+    //Update custom field to COntribution page owner contact id
+    $worker = new CustomFieldHelper("Owner organisation");
+    $worker->insertOrUpdateValue($contributionId, $ownerContactId);
   }
   
   /**
@@ -153,7 +186,7 @@ class RelationshipContributionACLWorker {
     $allowedContactIDs = $worker->getContactIDsWithEditPermissions($currentUserContactID);
     
     //Array with Contribution page ID as key and owner contact ID as value
-    $ownerMap = $this->loadAllContributionPagesOwnerContactId();
+    $ownerMap = ContributionPageOwnerDAO::loadAllContributionPagesOwnerContactId();
     
     foreach ($rows as $eventID => &$row) {
       //Skip Contribution pages that does not yet have owner info. These are always visible.
@@ -169,115 +202,6 @@ class RelationshipContributionACLWorker {
         unset($rows[$eventID]);
       }
     }
-  }
-  
-  /**
-  * Insert or updates contribution page owner contact id to civicrm_contribution_page_owner table.
-  * Update is done if row already exists. Does nothing if $owner_contact_id is not number larger than zero.
-  *
-  * @param string|int $contribution_page_id Contribution page id
-  * @param string|int $owner_contact_id Owner Contact id
-  */
-  public function insertOrUpdateOwnerContactId($contribution_page_id, $owner_contact_id) {
-    $oldOwnerID = $this->loadOwnerContactId($contribution_page_id);
-    
-    if($oldOwnerID == 0) {
-      $this->insertOwnerContactId($contribution_page_id, $owner_contact_id);
-    }
-    else {
-      $this->updateOwnerContactId($contribution_page_id, $owner_contact_id);
-    }
-  }
-  
-  /**
-  * Insert contribution page owner contact id to civicrm_contribution_page_owner table.
-  * Does nothing if $owner_contact_id is not number larger than zero.
-  *
-  * @param string|int $contribution_page_id Contribution page id
-  * @param string|int $owner_contact_id Owner Contact id
-  */
-  public function insertOwnerContactId($contribution_page_id, $owner_contact_id) {
-    $contribution_page_id = (int) $contribution_page_id;
-    $owner_contact_id = (int) $owner_contact_id;
-    
-    //No contact id, do not insert row
-    if($owner_contact_id == 0) {
-      return;
-    }
-  
-    $sql = "
-      INSERT INTO civicrm_contribution_page_owner
-      VALUES ($contribution_page_id, $owner_contact_id)
-    ";
- 
-    CRM_Core_DAO::executeQuery($sql);
-  }
-  
-  /**
-  * Updates contribution page owner contact id to civicrm_contribution_page_owner table.
-  * Does nothing if $owner_contact_id is not number larger than zero.
-  *
-  * @param string|int $contribution_page_id Contribution page id
-  * @param string|int $owner_contact_id Owner Contact id
-  */
-  public function updateOwnerContactId($contribution_page_id, $owner_contact_id) {
-    $contribution_page_id = (int) $contribution_page_id;
-    $owner_contact_id = (int) $owner_contact_id;
-    
-    //No contact id, do not update row
-    if($owner_contact_id == 0) {
-      return;
-    }
-  
-    $sql = "
-      UPDATE civicrm_contribution_page_owner
-      SET owner_contact_id = $owner_contact_id
-      WHERE contribution_page_id = $contribution_page_id
-    ";
- 
-    CRM_Core_DAO::executeQuery($sql);
-  }
-  
-  /**
-  * Loads single contribution page owner contact id from civicrm_contribution_page_owner table.
-  *
-  * @param string|int $contribution_page_id Contribution page id
-  * @return int Contact id. Null if $contribution_page_id is not number larger than zero
-  */
-  public function loadOwnerContactId($contribution_page_id) {
-    $contribution_page_id = (int) $contribution_page_id;
-    
-    if($contribution_page_id == 0) {
-      return null;
-    }
-    
-    $sql = "
-      SELECT owner_contact_id  
-      FROM civicrm_contribution_page_owner
-      WHERE contribution_page_id = $contribution_page_id
-    ";
-    
-    return (int) CRM_Core_DAO::singleValueQuery($sql);
-  }
-  
-  /**
-  * Loads all contribution pages owner contact ids from civicrm_contribution_page_owner table.
-  *
-  * @return array Associative array where key is Contribution page ID and value is contact ID.
-  */
-  public function loadAllContributionPagesOwnerContactId() {
-    $sql = "
-      SELECT contribution_page_id, owner_contact_id  
-      FROM civicrm_contribution_page_owner
-    ";
-    $dao = CRM_Core_DAO::executeQuery($sql);
-    
-    $result = array();
-    while ($dao->fetch()) {
-      $result[$dao->contribution_page_id] = $dao->owner_contact_id;
-    }
-    
-    return $result;
   }
   
   /**

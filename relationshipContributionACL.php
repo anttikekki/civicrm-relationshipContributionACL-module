@@ -68,6 +68,18 @@ function relationshipContributionACL_civicrm_validateForm($formName, &$fields, &
 function relationshipContributionACL_civicrm_postSave_civicrm_contribution_page(&$dao) {
   if($dao instanceof CRM_Contribute_DAO_ContributionPage) {
     $worker = new RelationshipContributionACLWorker();
-    $worker->postSaveHook($dao);
+    $worker->contributionPagePostSaveHook($dao);
+  }
+}
+
+/**
+* Implements CiviCRM 'postSave' hook for civicrm_contribution table.
+*
+* @param CRM_Contribute_Form_ContributionBase $dao Dao that is used to save Contribution
+*/
+function relationshipContributionACL_civicrm_postSave_civicrm_contribution(&$dao) {
+  if($dao instanceof CRM_Contribute_DAO_Contribution) {
+    $worker = new RelationshipContributionACLWorker();
+    $worker->contributionPostSaveHook($dao);
   }
 }
