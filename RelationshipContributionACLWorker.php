@@ -25,6 +25,8 @@ class RelationshipContributionACLWorker {
   * @param CRM_Core_Form $form Form
   */
   public function buildFormHook(&$form) {
+    $this->checkContributionPageEditPermission($form);
+  
     $contributionPageId = $form->get('id');
     $ownerContactId = $this->loadOwnerContactId($contributionPageId);
     $contactName = $this->getContactNameForId($ownerContactId);
@@ -116,6 +118,23 @@ class RelationshipContributionACLWorker {
     
     if(!isset($_GET["crmRowCount"])) {
       CRM_Utils_System::redirect($currentURL . "&crmRowCount=9999999");
+    }
+  }
+  
+  /**
+  * Check if current logged in user has rights to edit selected Contribution page. Show fatal error if no permission.
+  *
+  * @param CRM_Contribute_Form_ContributionPage $form Form for Contribution page editing
+  */
+  public function checkContributionPageEditPermission(&$form) {
+    $contributonPageId = $form->get('id');
+    
+    $rows = array();
+    $rows[$contributonPageId] = array();
+    $this->filterContributionPageRows($rows);
+    
+    if(count($rows) === 0) {
+      CRM_Core_Error::fatal(ts('You do not have permission to view this Contributon page'));
     }
   }
   
