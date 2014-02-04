@@ -95,12 +95,28 @@ class RelationshipContributionACLWorker {
   * @param CRM_Contribute_Page_ContributionPage CiviCRM Page for Manage contribution pages page
   */
   public function pageRunHook(&$page) {
+    $this->checkPagerRowCount();
+  
     $template = $page->getTemplate();
     $rows = $template->get_template_vars("rows");
   
     $this->filterContributionPageRows($rows);
     
     $page->assign("rows", $rows);
+  }
+  
+  /**
+  * Checks that Manage Contribution pages URL contains crmRowCount parameter. 
+  * If not, do redirect to same page with crmRowCount paramer. crmRowCount is needed 
+  * to remove pager so all rows are always visible. Pager is broken because this module 
+  * filters rows after pager is constructed.
+  */
+  public function checkPagerRowCount() {
+    $currentURL = "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+    
+    if(!isset($_GET["crmRowCount"])) {
+      CRM_Utils_System::redirect($currentURL . "&crmRowCount=9999999");
+    }
   }
   
   /**
