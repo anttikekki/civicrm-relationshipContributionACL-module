@@ -19,7 +19,7 @@ Contribution pages
 With this module User 1 can see and edit Contribution page 2 but not Contribution page 1. Contribution page 2 is owned by Sub-organisation 2 that User 1 has edit rights. User 1 does not have edit rights to Organisation 1 so this Contribution page is invisible to user.
 
 ### Installation
-Copy _com.github.anttikekki.relationshipContributionACL_ folder to CiviCRM extension folder and install and enable extension in administration.
+Create _com.github.anttikekki.relationshipContributionACL_ folder to CiviCRM extension folder and copy all files into it. Install and enable extension in administration.
 
 This module uses temporary tables in database so CiviCRM MySQL user has to have permissions to create these kind of tables.
 
