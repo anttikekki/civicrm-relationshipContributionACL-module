@@ -189,4 +189,25 @@ class CustomFieldHelper {
     
     return (int) CRM_Core_DAO::singleValueQuery($sql);
   }
+  
+  /**
+  * Loads all values for Custom field.
+  *
+  * @return array Custom field values in associative array where key is entity_id and value is custom field value.
+  */
+  public function loadAllValues() {    
+    $sql = "
+      SELECT entity_id, ".$this->_columnName."  
+      FROM ".$this->_tableName."
+    ";
+    
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    
+    $result = array();
+    while ($dao->fetch()) {
+      $result[$dao->entity_id] = $dao->{$this->_columnName};
+    }
+    
+    return $result;
+  }
 }

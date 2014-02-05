@@ -125,7 +125,7 @@ class RelationshipContributionACLWorker {
     }
   
     //Update custom field to Contribution page owner contact id
-    $worker = new CustomFieldHelper($this->getContributionOwnerCustonGroupNameFromConfig());
+    $worker = new CustomFieldHelper($this->getContributionOwnerCustomGroupNameFromConfig());
     $worker->insertOrUpdateValue($contributionId, $ownerContactId);
   }
   
@@ -262,7 +262,7 @@ class RelationshipContributionACLWorker {
   *
   * @return string Custom field group title name.
   */
-  public function getContributionOwnerCustonGroupNameFromConfig() {
+  public function getContributionOwnerCustomGroupNameFromConfig() {
     $sql = "
       SELECT config_value  
       FROM civicrm_relationshipContributionACL_config
