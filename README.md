@@ -25,8 +25,8 @@ With this module User 1 can see and edit Contribution page 2 but not Contributio
 
 ### Installation
 1. Create `com.github.anttikekki.relationshipContributionACL` folder to CiviCRM extension folder and copy all files into it. Install and enable extension in administration.
-2. Create custom field to COntributio that stores contact. This is used to sve contribution owner contact id.
-3. Insert row to this module configuration table `civicrm_relationshipContributionACL_config`. `config_key` column value is `contributionOwnerCustomGroupName` and `congif_value` column value is our Contribution custom field group title name.
+2. Insert row to this module configuration table `civicrm_relationshipContributionACL_config`. `config_key` column value is `contributionOwnerCustomGroupName` and `congif_value` column value is our Contribution custom field group title name that stores contact info.
+3. Rebuild navigation menu. Go to Administer -> System Settings -> Cleanup Caches and Update Paths and push `Cleanup caches`
 
 This module uses temporary tables in database so CiviCRM MySQL user has to have permissions to create these kind of tables.
 

@@ -93,3 +93,18 @@ function relationshipContributionACL_civicrm_postSave_civicrm_contribution(&$dao
     $worker->contributionPostSaveHook($dao);
   }
 }
+
+/**
+* Implemets CiviCRM 'navigationMenu' hook. Alters navigation menu to 
+* remove Pager from 'Manage Contribution pages' page. Pager is broken because of row 
+* filtering done by this module.
+*
+* Menu rebuild is required to make this work.
+*
+* @param Array $params Navigation menu structure.
+*/
+function relationshipContributionACL_civicrm_navigationMenu(&$params) {
+  $url = $params[29]["child"][43]["attributes"]["url"];
+  $url = $url . "&crmRowCount=9999999";
+  $params[29]["child"][43]["attributes"]["url"] = $url;
+}
