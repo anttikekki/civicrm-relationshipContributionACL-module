@@ -27,12 +27,26 @@ require_once "ContributionPageOwnerDAO.php";
 class RelationshipContributionACLWorker {
 
   /**
+  * Singleton instace of this worker
+  *
+  * @var RelationshipContributionACLWorker
+  */
+  private static $instance = null;
+
+  /**
   * Config key for civicrm_relationshipContributionACL_config table. This key 
   * stores name of Contribution Custom field group that stores contribution owner contact id.
   *
   * @var string
   */
   protected $configKey_contributionOwnerCustomGroupName = "contributionOwnerCustomGroupName";
+  
+  /**
+  * Page class names processed by this worker. This allows to check that every page is only processed once.
+  *
+  * @var array
+  */
+  protected $processedPageClasses = array();
 
   /**
   * Executed when Contribution admin page is built.
@@ -41,9 +55,9 @@ class RelationshipContributionACLWorker {
   * custom civicrm_contribution_page_owner table. Also adds ownerContactName.js file to page load 
   * so it can create new Owner Name input to form.
   *
-  * @param CRM_Core_Form $form Form
+  * @param CRM_Contribute_Form_ContributionPage $form Form
   */
-  public function buildFormHook(&$form) {
+  public function contributionPageBuildFormHook(&$form) {
     $this->checkContributionPageEditPermission($form);
   
     $contributionPageId = $form->get('id');
@@ -60,6 +74,24 @@ class RelationshipContributionACLWorker {
     
     //Set value to JavaScript. This will be accesible by CRM.relationshipContributionACL.ownerContactName
     CRM_Core_Resources::singleton()->addSetting(array('relationshipContributionACL' => array('ownerContactName' => $contactName)));
+  }
+  
+  /**
+  * Executed when Contribution info page (user contribution) is built.
+  * Checks logged in user rights to edit contribution.
+  *
+  * @param CRM_Contribute_Page_Tab $page Form
+  */
+  public function contributionPageRunHook(&$page) {
+    /*
+    * CRM_Contribute_Page_Tab is also used to lead snippets by Ajax. 
+    * Lets only check permissions for main page and not for Ajax snippets.
+    */
+    if(isset($_GET["snippet"])) {
+      return;
+    }
+  
+    $this->checkContributionEditPermission($page);
   }
   
   /**
@@ -137,7 +169,7 @@ class RelationshipContributionACLWorker {
   *
   * @param CRM_Contribute_Page_ContributionPage CiviCRM Page for Manage contribution pages page
   */
-  public function pageRunHook(&$page) {
+  public function manageContributionsPageRunHook(&$page) {
     $this->checkPagerRowCount();
   
     $template = $page->getTemplate();
@@ -176,6 +208,35 @@ class RelationshipContributionACLWorker {
     
     if(count($rows) === 0) {
       CRM_Core_Error::fatal(ts('You do not have permission to view this Contributon page'));
+    }
+  }
+  
+  /**
+  * Check if current logged in user has rights to edit selected Contribution. Show fatal error if no permission.
+  *
+  * @param CRM_Contribute_Page_Tab $page Page for Contribution editing
+  */
+  public function checkContributionEditPermission(&$page) {
+    $contributionId = $page->_id;
+    $dao = new CRM_Contribute_DAO_Contribution();
+    $dao->get("id", $contributionId);
+    $contributonPageId = $dao->contribution_page_id;
+    
+    //Null Contribution page means Event regiteration contribution
+    if(!isset($contributonPageId)) {
+      /*
+      * Event participation contribution edit permissions check is done by 
+      * relationshipEventACL module (if present).
+      */
+      return;
+    }
+    
+    $rows = array();
+    $rows[$contributonPageId] = array();
+    $this->filterContributionPageRows($rows);
+    
+    if(count($rows) === 0) {
+      CRM_Core_Error::fatal(ts('You do not have permission to edit this Contributon'));
     }
   }
   
@@ -290,5 +351,36 @@ class RelationshipContributionACLWorker {
     $contact_id = $values[0]['contact_id'];
     
     return $contact_id;
+  }
+  
+  /**
+  * Is given page already processed by this worker?
+  *
+  * @param CRM_Core_Form|CRM_Core_Page $page
+  * @return boolean 
+  */
+  private function isPageProcessed(&$page) {
+    return in_array(get_class($page), $this->processedPageClasses);
+  }
+  
+  /**
+  * Add given page to processed pages list.
+  *
+  * @param CRM_Core_Form|CRM_Core_Page $page
+  */
+  private function markPageProcessed(&$page) {
+    $this->processedPageClasses[] = get_class($page);
+  }
+  
+  /**
+  * Call this method to get singleton RelationshipContributionACLWorker
+  *
+  * @return RelationshipContributionACLWorker
+  */
+  public static function getInstance() {
+    if (!isset(static::$instance)) {
+      static::$instance = new RelationshipContributionACLWorker();
+    }
+    return static::$instance;
   }
 }

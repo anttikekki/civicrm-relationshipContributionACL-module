@@ -34,8 +34,12 @@ function relationshipContributionACL_civicrm_install() {
 */
 function relationshipContributionACL_civicrm_pageRun(&$page) {
   if($page instanceof CRM_Contribute_Page_ContributionPage) {
-    $worker = new RelationshipContributionACLWorker();
-    $worker->pageRunHook($page);
+    $worker = RelationshipContributionACLWorker::getInstance();
+    $worker->manageContributionsPageRunHook($page);
+  }
+  else if($page instanceof CRM_Contribute_Page_Tab) {
+    $worker = RelationshipContributionACLWorker::getInstance();
+    $worker->contributionPageRunHook($page);
   }
 }
 
@@ -47,8 +51,8 @@ function relationshipContributionACL_civicrm_pageRun(&$page) {
 */
 function relationshipContributionACL_civicrm_buildForm($formName, &$form) {
   if($form instanceof CRM_Contribute_Form_ContributionPage) {
-    $worker = new RelationshipContributionACLWorker();
-    $worker->buildFormHook($form);
+    $worker = RelationshipContributionACLWorker::getInstance();
+    $worker->contributionPageBuildFormHook($form);
   }
 }
 
@@ -63,7 +67,7 @@ function relationshipContributionACL_civicrm_buildForm($formName, &$form) {
 */
 function relationshipContributionACL_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors){
   if($form instanceof CRM_Contribute_Form_ContributionPage_Settings) {
-    $worker = new RelationshipContributionACLWorker();
+    $worker = RelationshipContributionACLWorker::getInstance();
     $worker->validateFormHook($formName, $fields, $files, $form, $errors);
   }
 }
@@ -77,7 +81,7 @@ function relationshipContributionACL_civicrm_validateForm($formName, &$fields, &
 */
 function relationshipContributionACL_civicrm_postSave_civicrm_contribution_page(&$dao) {
   if($dao instanceof CRM_Contribute_DAO_ContributionPage) {
-    $worker = new RelationshipContributionACLWorker();
+    $worker = RelationshipContributionACLWorker::getInstance();
     $worker->contributionPagePostSaveHook($dao);
   }
 }
@@ -85,11 +89,11 @@ function relationshipContributionACL_civicrm_postSave_civicrm_contribution_page(
 /**
 * Implements CiviCRM 'postSave' hook for civicrm_contribution table.
 *
-* @param CRM_Contribute_Form_ContributionBase $dao Dao that is used to save Contribution
+* @param CRM_Contribute_DAO_Contribution $dao Dao that is used to save Contribution
 */
 function relationshipContributionACL_civicrm_postSave_civicrm_contribution(&$dao) {
   if($dao instanceof CRM_Contribute_DAO_Contribution) {
-    $worker = new RelationshipContributionACLWorker();
+    $worker = RelationshipContributionACLWorker::getInstance();
     $worker->contributionPostSaveHook($dao);
   }
 }
