@@ -181,6 +181,108 @@ class RelationshipContributionACLWorker {
   }
   
   /**
+  * Executed when Contribution search form is built.
+  *
+  * Iterates 'row' array from template and removes Contributions that belongs to Contribution page that current logged in user does not have 
+  * editing rights. Editing rights are based on relationship tree.
+  *
+  * @param CRM_Contribute_Form_Search CiviCRM Page for Contribution search
+  */
+  public function contributionSearchAlterTemplateHook(&$form) {
+    $this->filterContributionsSearchFormResults($form);
+    
+    //JavaScript adds 'limit=500' to contribution search form action URL to increase pager page size.
+    CRM_Core_Resources::singleton()->addScriptFile('com.github.anttikekki.relationshipContributionACL', 'contributionSearchPagerFix.js');
+  }
+  
+  /**
+  * Iterates 'row' array from template and removes Contributions that belongs to Contribution page that current logged in user does not have 
+  * editing rights. Editing rights are based on relationship tree.
+  *
+  * @param CRM_Contribute_Form_Search CiviCRM Page for Contribution search
+  */
+  private function filterContributionsSearchFormResults(&$form) {
+    $template = $form->getTemplate();
+    $rows = $template->get_template_vars("rows");
+    
+    //If there are no contribution search results (this happens before search) do not continue
+    if(!is_array($rows)) {
+      return;
+    }
+  
+    $this->filterContributions($rows);
+    $template->assign("rows", $rows);
+    
+    //Update row count info
+    $rowCount = count($rows);
+    $rowsEmpty = $rowCount ? FALSE : TRUE;
+    $template->assign("rowsEmpty", $rowsEmpty);
+    $template->assign("rowCount", $rowCount);
+  }
+  
+  /**
+  * Iterates rows array from template and removes Contributions that belongs to Contribution page where current logged in user does not have 
+  * editing rights. Editing rights are based on relationship tree. Contribution page owner is detemined from 
+  * this module custom civicrm_contribution_page_owner table.
+  *
+  * @param array $rows Array of Contributions
+  */
+  private function filterContributions(&$rows) {    
+    //If there are no contribution search results (this happens before search) do not continue
+    if(!is_array($rows)) {
+      return;
+    }
+    
+    //Find all contribution ids
+    $contributionIds = array();
+    foreach ($rows as $index => &$row) {
+      $contributionIds[] = $row["contribution_id"];
+    }
+    
+    /*
+    * Find Contribution page ids for contributions. Page id is NULL if contribution is for Event.
+    * Return value array key is Contribution id and value is Contribution page id
+    */
+    $contributionPageIds = $this->getContributionPageIdsForContributionIds($contributionIds);
+    
+    $currentUserContactID = $this->getCurrentUserContactID();
+    
+    //All contact IDs the current logged in user has rights to edit through relationships
+    $worker = new RelationshipACLQueryWorker();
+    $allowedContactIDs = $worker->getContactIDsWithEditPermissions($currentUserContactID);
+    
+    //Array with Contribution page ID as key and owner contact ID as value
+    $ownerMap = ContributionPageOwnerDAO::loadAllContributionPagesOwnerContactId();
+    
+    foreach ($rows as $index => &$row) {
+      $contributionId = $row["contribution_id"];
+      
+      /*
+      * Contribution is for Event if Contribution page id is NULL. 
+      * Event Contributions are filtered by relationshipEventACL module.
+      */
+      if(!isset($contributionPageIds[$contributionId])) {
+        continue;
+      }
+      
+      $contributionPageId = $contributionPageIds[$contributionId];
+    
+      //Skip Contributions for Contribution pages that does not yet have owner info. These are always visible.
+      if(!array_key_exists($contributionPageId, $ownerMap)) {
+        continue;
+      }
+      
+      //Get Contribution page owner contact ID from civicrm_contribution_page_owner table
+      $ownerContactID = $ownerMap[$contributionPageId];
+      
+      //If logged in user contact ID is not allowed to edit Contribution page, remove Contribution from array
+      if(!in_array($ownerContactID, $allowedContactIDs)) {
+        unset($rows[$index]);
+      }
+    }
+  }
+  
+  /**
   * Checks that Manage Contribution pages URL contains crmRowCount parameter. 
   * If not, do redirect to same page with crmRowCount paramer. crmRowCount is needed 
   * to remove pager so all rows are always visible. Pager is broken because this module 
@@ -257,18 +359,18 @@ class RelationshipContributionACLWorker {
     //Array with Contribution page ID as key and owner contact ID as value
     $ownerMap = ContributionPageOwnerDAO::loadAllContributionPagesOwnerContactId();
     
-    foreach ($rows as $eventID => &$row) {
+    foreach ($rows as $contibutionPageId => &$row) {
       //Skip Contribution pages that does not yet have owner info. These are always visible.
-      if(!array_key_exists($eventID, $ownerMap)) {
+      if(!array_key_exists($contibutionPageId, $ownerMap)) {
         continue;
       }
       
       //Get Contribution page owner contact ID from civicrm_contribution_page_owner table
-      $ownerContactID = $ownerMap[$eventID];
+      $ownerContactID = $ownerMap[$contibutionPageId];
       
       //If logged in user contact ID is not allowed to edit Contribution page, remove page from array
       if(!in_array($ownerContactID, $allowedContactIDs)) {
-        unset($rows[$eventID]);
+        unset($rows[$contibutionPageId]);
       }
     }
   }
@@ -370,6 +472,32 @@ class RelationshipContributionACLWorker {
   */
   private function markPageProcessed(&$page) {
     $this->processedPageClasses[] = get_class($page);
+  }
+  
+  /**
+  * Query Contribution page ids for contribution id.
+  *
+  * @param array $contributionIds Contribution ids
+  * @return array Array where key is contribution id and value is Contribution page id
+  */
+  private function getContributionPageIdsForContributionIds($contributionIds) {
+    //Remove values that are not numeric
+    $contributionIds = array_filter($contributionIds, "is_numeric");
+  
+    $sql = "
+      SELECT id, contribution_page_id  
+      FROM civicrm_contribution
+      WHERE id IN (". implode(",", $contributionIds) .")
+    ";
+    
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    
+    $result = array();
+    while ($dao->fetch()) {
+      $result[$dao->id] = $dao->contribution_page_id;
+    }
+    
+    return $result;
   }
   
   /**

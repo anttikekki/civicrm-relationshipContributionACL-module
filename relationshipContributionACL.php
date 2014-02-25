@@ -57,6 +57,21 @@ function relationshipContributionACL_civicrm_buildForm($formName, &$form) {
 }
 
 /**
+* Implemets CiviCRM 'alterTemplateFile' hook.
+*
+* @param String $formName Name of current form.
+* @param CRM_Core_Form $form Current form.
+* @param CRM_Core_Form $context Page or form.
+* @param String $tplName The file name of the tpl - alter this to alter the file in use.
+*/
+function relationshipContributionACL_civicrm_alterTemplateFile($formName, &$form, $context, &$tplName) {
+  if($form instanceof CRM_Contribute_Form_Search) {
+    $worker = RelationshipContributionACLWorker::getInstance();
+    $worker->contributionSearchAlterTemplateHook($form);
+  }
+}
+
+/**
 * Implements CiviCRM 'validateForm' hook.
 *
 * @param string $formName Name of current form.
