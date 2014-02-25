@@ -7,6 +7,7 @@
 if(class_exists('RelationshipACLQueryWorker') === false) {
   require_once "RelationshipACLQueryWorker.php";
 }
+RelationshipACLQueryWorker::checkVersion("1.1");
 
 /**
 * Only import worker if it is not already loaded. Multiple imports can happen
@@ -248,7 +249,7 @@ class RelationshipContributionACLWorker {
     $currentUserContactID = $this->getCurrentUserContactID();
     
     //All contact IDs the current logged in user has rights to edit through relationships
-    $worker = new RelationshipACLQueryWorker();
+    $worker = RelationshipACLQueryWorker::getInstance();
     $allowedContactIDs = $worker->getContactIDsWithEditPermissions($currentUserContactID);
     
     //Array with Contribution page ID as key and owner contact ID as value
@@ -353,7 +354,7 @@ class RelationshipContributionACLWorker {
     $currentUserContactID = $this->getCurrentUserContactID();
     
     //Find all contact IDs the current logged in user has rights to edit through relationships
-    $worker = new RelationshipACLQueryWorker();
+    $worker = RelationshipACLQueryWorker::getInstance();
     $allowedContactIDs = $worker->getContactIDsWithEditPermissions($currentUserContactID);
     
     //Array with Contribution page ID as key and owner contact ID as value
