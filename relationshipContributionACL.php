@@ -69,21 +69,10 @@ function relationshipContributionACL_civicrm_alterTemplateFile($formName, &$form
     $worker = RelationshipContributionACLWorker::getInstance();
     $worker->contributionSearchAlterTemplateHook($form);
   }
-}
-
-/**
-* Implemets CiviCRM 'alterContent' hook.
-*
-* @param string $content previously generated content
-* @param string $context context of content - page or form
-* @param string $tplName the file name of the tpl
-* @param object $object a reference to the page or form object
-*/
-function relationshipContributionACL_civicrm_alterContent(&$content, $context, $tplName, &$object) {
   //Contact Contributions tab
-  if($object instanceof CRM_Contribute_Page_Tab) {
+  else if($form instanceof CRM_Contribute_Page_Tab) {
     $worker = RelationshipContributionACLWorker::getInstance();
-    $worker->contactContributionTabAlterContentHook($content);
+    $worker->contactContributionTabAlterTemplateHook($form);
   }
 }
 

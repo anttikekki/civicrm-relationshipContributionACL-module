@@ -17,14 +17,6 @@ if(class_exists('CustomFieldHelper') === false) {
   require_once "CustomFieldHelper.php";
 }
 
-/**
-* Only import phpQuery if it is not already loaded. Multiple imports can happen
-* because relationshipEvenACL module uses same worker. 
-*/
-if(class_exists('phpQuery') === false) {
-  require_once('phpQuery.php');
-}
-
 require_once "ContributionPageOwnerDAO.php";
 
 
@@ -61,14 +53,10 @@ class RelationshipContributionACLWorker {
   * Executed when Contact Contributions tab is built.
   * Filters Event contribution rows based on Event owner.
   *
-  * Html manipulation is required because page data before rendering can not be manipulated with hooks. 
-  * Contact Contributions tab is class CRM_Contribute_Page_Tab that embeds instance of CRM_Contribute_Form_Search.
-  * This instance can not be accessed and modified so we need to modify the result.
-  *
-  * @param string $html Search contributions tab HTML
+  * @param CRM_Contribute_Page_Tab $form Contact Contributions tab
   */
-  public function contactContributionTabAlterContentHook(&$html) {
-    $this->filterContactContributionTableHTMLRows($html);
+  public function contactContributionTabAlterTemplateHook(&$form) {
+    $this->filterContributionsSearchFormResults($form);
   }
 
   /**
@@ -222,7 +210,7 @@ class RelationshipContributionACLWorker {
   * Iterates 'row' array from template and removes Contributions that belongs to Contribution page that current logged in user does not have 
   * editing rights. Editing rights are based on relationship tree.
   *
-  * @param CRM_Contribute_Form_Search CiviCRM Page for Contribution search
+  * @param CRM_Contribute_Form_Search|CRM_Contribute_Page_Tab CiviCRM Page for Contribution search
   */
   private function filterContributionsSearchFormResults(&$form) {
     $template = $form->getTemplate();
@@ -540,54 +528,6 @@ class RelationshipContributionACLWorker {
     }
     
     return $result;
-  }
-  
-  /**
-  * Executed when Contact Contributions tab is built.
-  * Filters contribution rows based on Contribution page owner.
-  *
-  * @param string $html Search contributions tab HTML
-  */
-  private function filterContactContributionTableHTMLRows(&$html) {
-    $doc = phpQuery::newDocumentHTML($html);
-    $contributionIds = $this->getContributionSearchFormHtmlTableContributionIds($doc);
-    $allowedContributionPageContributionIds = $this->getAllowedContributionPageContributionIds($contributionIds);
-    
-    /* 
-    * Remove COntribution page contribution rows that are not allowed to current logged in user.
-    * Event contributions are filtered by relationshipEventACL module.
-    */
-    foreach ($contributionIds as $contributionId) {
-      if(!in_array($contributionId, $allowedContributionPageContributionIds)) {
-        $doc->find("#Search tr.crm-contribution_" . $contributionId)->remove();
-      }
-    }
-    
-    $html = $doc->getDocument();
-  }
-  
-  /**
-  * Finds all Contribution ids from Search contributions HTML string. Ids are stored in 
-  * class name "crm-contribution_123".
-  *
-  * @param phpQuery $doc phpQuery instance holding HTML content
-  * @return array Array of rows -contribution ids
-  */
-  private function getContributionSearchFormHtmlTableContributionIds($doc) {
-    $contributionIds = array();
-    foreach ($doc->find("#Search tr") as $tr) {
-      $class = pq($tr)->attr('class');
-      
-      $startIndex = strrpos($class, "crm-contribution_");
-      if($startIndex == 0) {
-        continue;
-      }
-      
-      $startIndex += 17; //Length of "crm-contribution_"
-      $contributionIds[] = (int) substr($class, $startIndex);
-    }
-    
-    return $contributionIds;
   }
   
   /**
