@@ -4,8 +4,10 @@ civicrm-relationshipContributionACL-module
 
 This module:
 * Adds new field to Contribution admin screen to store owner information
-* Filters Manage Contribution pages screen rows to remove pages that user has no rights to edit
 * Inserts Contribution page owner info to every contribution custom field that stores owner contact info
+* Filters Manage Contribution pages screen rows to remove pages that user has no rights to edit
+* Filters Find Contribution screen rows to remove Contribution page contributions that user has no rights to edit
+* Filters Contact screen Contrbutions tab to remove Contribution page contributions that user has no rights to edit
 
 This module uses relationships instead of groups or ACL to limit visibility and editability. The whole relationship tree is searched and all Contribution pages that are owned by contacts to where user has edit permissions through relationships are made visible and editable. All contact types are searched.
 
@@ -31,9 +33,9 @@ With this module User 1 can see and edit Contribution page 2 but not Contributio
 This module uses temporary tables in database so CiviCRM MySQL user has to have permissions to create these kind of tables.
 
 ### Performance considerations
-This module performance on large CiviCRM sites may be poor. Module needs to determine the relationship tree structure on every administration Manage Contribution page pageload. The relationship tree may be deep and complex. This means 1 query for every relationship level. The search done with help of temporary table in database.
+This module performance on large CiviCRM sites may be poor. Module needs to determine the relationship tree structure on every administration altered page pageload. The relationship tree may be deep and complex. This means 1 query for every relationship level. The search done with help of temporary table in database.
 
-This logic may lead to multiple large queries and large temporary table on every event Manage Contribution page load in contact administration.
+This logic may lead to multiple large queries and large temporary table on every event altered page load in administration.
 
 ### Licence
 GNU Affero General Public License
