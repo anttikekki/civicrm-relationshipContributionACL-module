@@ -74,6 +74,11 @@ function relationshipContributionACL_civicrm_alterTemplateFile($formName, &$form
     $worker = RelationshipContributionACLWorker::getInstance();
     $worker->contactContributionTabAlterTemplateHook($form);
   }
+  //Contribution dashboard
+  else if($form instanceof CRM_Contribute_Page_DashBoard) {
+    $worker = RelationshipContributionACLWorker::getInstance();
+    $worker->contributionDashboardAlterTemplateHook($form);
+  }
 }
 
 /**

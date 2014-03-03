@@ -50,8 +50,18 @@ class RelationshipContributionACLWorker {
   protected $processedPageClasses = array();
   
   /**
+  * Executed when Contributions Dashboard is built.
+  * Filters contribution rows based on Contribution page owner.
+  *
+  * @param CRM_Contribute_Page_DashBoard $form Contribution Dashboard
+  */
+  public function contributionDashboardAlterTemplateHook(&$form) {
+    $this->filterContributionsSearchFormResults($form);
+  }
+  
+  /**
   * Executed when Contact Contributions tab is built.
-  * Filters Event contribution rows based on Event owner.
+  * Filters contribution rows based on Contribution page owner.
   *
   * @param CRM_Contribute_Page_Tab $form Contact Contributions tab
   */
