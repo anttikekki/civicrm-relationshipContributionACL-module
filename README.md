@@ -2,16 +2,26 @@ civicrm-relationshipContributionACL-module
 ==========================================
 [CiviCRM] (https://civicrm.org/) module to use contact relationships edit rights to determine Contribution page visibility and editability in CiviCRM administration screens. 
 
-This module:
-* Adds new field to Contribution admin screen to store owner information
-* Inserts Contribution page owner info to every contribution custom field that stores owner contact info
-* Filters Manage Contribution pages screen rows to remove pages that user has no rights to edit
-* Filters Find Contribution screen rows to remove Contribution page contributions that user has no rights to edit
-* Filters Contact screen Contrbutions tab to remove Contribution page contributions that user has no rights to edit
+This module adds new field to Contribution admin screen to store owner information and inserts Contribution page owner info to every contribution custom field that stores owner contact info
+
+This module filters search results rows on following pages:
+* Manage Contribution pages
+* Find Contributions
+* Contribution dashboard
+* Contact Contrbutions tab (for Contribution page contributions)
+* Contact Activity tab (for Contribution page contributions)
+
+It also prevents user from accessing following pages by direct URL without permissions:
+* Contribution page edit page
+* Contribution edit page (for  Contribution page contributions)
+
 
 This module uses relationships instead of groups or ACL to limit visibility and editability. The whole relationship tree is searched and all Contribution pages that are owned by contacts to where user has edit permissions through relationships are made visible and editable. All contact types are searched.
 
 Portions of this module is based on the idea of [Relationship Permissions as ACLs] (https://civicrm.org/extensions/relationship-permissions-acls) extension. This module includes code from [relationshipACL](https://github.com/anttikekki/civicrm-relationshipACL-module) module.
+
+### Version history
+Version history and changelog is available in [Releases](https://github.com/anttikekki/civicrm-relationshipContributionACL-module/releases).
 
 ### Example
 * Organisation 1
