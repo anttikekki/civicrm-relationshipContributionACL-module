@@ -68,6 +68,24 @@ class RelationshipContributionACLWorker {
   public function contactContributionTabAlterTemplateHook(&$form) {
     $this->filterContributionsSearchFormResults($form);
   }
+  
+  /**
+  * Executed when Contact main page is built.
+  *
+  * @param CRM_Contact_Page_View_Summary $form Contact main page
+  */
+  public function contactMainPageAlterTemplateFileHook(&$form) {
+    CRM_Core_Resources::singleton()->addScriptFile('com.github.anttikekki.relationshipContributionACL', 'contactActivityTabContributionFiltering.js');
+    
+    //Add array of Contact Contributon Page ids for contributions to be used in Activity tab data filtering
+    $contactId = (int) $form->getTemplate()->get_template_vars("contactId");
+    $contributionPageIdForContributionId = $this->getContactContributionsContributionPageIds($contactId);
+    CRM_Core_Resources::singleton()->addSetting(array('relationshipContributionACL' => array('contributionPageIdForContributionId' => json_encode($contributionPageIdForContributionId))));
+    
+    //Add array of allowed Contribution page ids to be used in Activity tab data filtering
+    $allowedContributionPageIds = $this->getAllowedContributionPageIds();
+    CRM_Core_Resources::singleton()->addSetting(array('relationshipContributionACL' => array('allowedContributionPageIds' => $allowedContributionPageIds)));
+  }
 
   /**
   * Executed when Contribution admin page is built.
@@ -278,15 +296,7 @@ class RelationshipContributionACLWorker {
     * Return value array key is Contribution id and value is Contribution page id
     */
     $contributionPageIds = $this->getContributionPageIdsForContributionIds($contributionIds);
-    
-    $currentUserContactID = $this->getCurrentUserContactID();
-    
-    //All contact IDs the current logged in user has rights to edit through relationships
-    $worker = RelationshipACLQueryWorker::getInstance();
-    $allowedContactIDs = $worker->getContactIDsWithEditPermissions($currentUserContactID);
-    
-    //Array with Contribution page ID as key and owner contact ID as value
-    $ownerMap = ContributionPageOwnerDAO::loadAllContributionPagesOwnerContactId();
+    $allowedContributionPageIds = $this->getAllowedContributionPageIds();
     
     foreach ($contributionIds as $index => &$contributionId) {
       /*
@@ -298,8 +308,50 @@ class RelationshipContributionACLWorker {
       }
       
       $contributionPageId = $contributionPageIds[$contributionId];
+      
+      //If logged in user contact ID is not allowed to edit Contribution page, remove Contribution from array
+      if(!in_array($contributionPageId, $allowedContributionPageIds)) {
+        unset($contributionIds[$index]);
+      }
+    }
     
-      //Skip Contributions for Contribution pages that does not yet have owner info. These are always visible.
+    return $contributionIds;
+  }
+  
+  /**
+  * Iterates array of Contribution Page ids and removes Contributions Page ids that  
+  * current logged in user does not have editing rights. Editing rights are based on relationship tree.
+  *
+  * @param array $contributionPageIds Array of Contribution Page ids. If null or missingg, all Contribution Page ids are searched.
+  * @return array Array of allowed Contribution Page ids
+  */
+  private function getAllowedContributionPageIds($contributionPageIds = NULL) {
+    $currentUserContactID = $this->getCurrentUserContactID();
+    
+    //All contact IDs the current logged in user has rights to edit through relationships
+    $worker = RelationshipACLQueryWorker::getInstance();
+    $allowedContactIDs = $worker->getContactIDsWithEditPermissions($currentUserContactID);
+    
+    //Array with Contribution page ID as key and owner contact ID as value
+    $ownerMap = ContributionPageOwnerDAO::loadAllContributionPagesOwnerContactId();
+    
+    //If set of Contribution page ids is not specified, load all Contribution page ids
+    if(!isset($contributionPageIds)) {
+      $sql = "
+        SELECT id  
+        FROM civicrm_contribution_page
+      ";
+      
+      $dao = CRM_Core_DAO::executeQuery($sql);
+      
+      $contributionPageIds = array();
+      while ($dao->fetch()) {
+        $contributionPageIds[] = $dao->id;
+      }
+    }
+    
+    foreach ($contributionPageIds as $index => &$contributionPageId) {    
+      //Skip Contribution pages that does not yet have owner info. These are always visible.
       if(!array_key_exists($contributionPageId, $ownerMap)) {
         continue;
       }
@@ -309,11 +361,11 @@ class RelationshipContributionACLWorker {
       
       //If logged in user contact ID is not allowed to edit Contribution page, remove Contribution from array
       if(!in_array($ownerContactID, $allowedContactIDs)) {
-        unset($contributionIds[$index]);
+        unset($contributionPageIds[$index]);
       }
     }
     
-    return $contributionIds;
+    return $contributionPageIds;
   }
   
   /**
@@ -386,26 +438,11 @@ class RelationshipContributionACLWorker {
   * @param array $rows Array of Contribution pages
   */
   private function filterContributionPageRows(&$rows) {
-    $currentUserContactID = $this->getCurrentUserContactID();
-    
-    //Find all contact IDs the current logged in user has rights to edit through relationships
-    $worker = RelationshipACLQueryWorker::getInstance();
-    $allowedContactIDs = $worker->getContactIDsWithEditPermissions($currentUserContactID);
-    
-    //Array with Contribution page ID as key and owner contact ID as value
-    $ownerMap = ContributionPageOwnerDAO::loadAllContributionPagesOwnerContactId();
+    $allowedContributionPageIds = $this->getAllowedContributionPageIds();
     
     foreach ($rows as $contibutionPageId => &$row) {
-      //Skip Contribution pages that does not yet have owner info. These are always visible.
-      if(!array_key_exists($contibutionPageId, $ownerMap)) {
-        continue;
-      }
-      
-      //Get Contribution page owner contact ID from civicrm_contribution_page_owner table
-      $ownerContactID = $ownerMap[$contibutionPageId];
-      
       //If logged in user contact ID is not allowed to edit Contribution page, remove page from array
-      if(!in_array($ownerContactID, $allowedContactIDs)) {
+      if(!in_array($contibutionPageId, $allowedContributionPageIds)) {
         unset($rows[$contibutionPageId]);
       }
     }
@@ -528,6 +565,32 @@ class RelationshipContributionACLWorker {
       SELECT id, contribution_page_id  
       FROM civicrm_contribution
       WHERE id IN (". implode(",", $contributionIds) .")
+    ";
+    
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    
+    $result = array();
+    while ($dao->fetch()) {
+      $result[$dao->id] = $dao->contribution_page_id;
+    }
+    
+    return $result;
+  }
+  
+  /**
+  * Query Contribution page ids for Contact id contributions.
+  *
+  * @param int|string $contactId Contribution ids
+  * @return array Array where key is contribution id and value is Contribution page id
+  */
+  private function getContactContributionsContributionPageIds($contactId) {
+    $contactId = (int) $contactId;
+  
+    $sql = "
+      SELECT id, contribution_page_id  
+      FROM civicrm_contribution
+      WHERE contact_id = $contactId
+        AND contribution_page_id IS NOT NULL
     ";
     
     $dao = CRM_Core_DAO::executeQuery($sql);
