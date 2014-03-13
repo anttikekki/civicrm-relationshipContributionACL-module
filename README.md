@@ -10,6 +10,7 @@ This module filters search results rows on following pages:
 * Contribution dashboard
 * Contact Contrbutions tab (for Contribution page contributions)
 * Contact Activity tab (for Contribution page contributions)
+* Contribution reports criteria (Contribution page selection) and results
 
 It also prevents user from accessing following pages by direct URL without permissions:
 * Contribution page edit page
