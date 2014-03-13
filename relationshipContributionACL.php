@@ -33,10 +33,12 @@ function relationshipContributionACL_civicrm_install() {
 * @param CRM_Core_Page $page Current page.
 */
 function relationshipContributionACL_civicrm_pageRun(&$page) {
+  //Manage contributin pages
   if($page instanceof CRM_Contribute_Page_ContributionPage) {
     $worker = RelationshipContributionACLWorker::getInstance();
     $worker->manageContributionsPageRunHook($page);
   }
+  //Contribution edit
   else if($page instanceof CRM_Contribute_Page_Tab) {
     $worker = RelationshipContributionACLWorker::getInstance();
     $worker->contributionPageRunHook($page);
@@ -50,6 +52,7 @@ function relationshipContributionACL_civicrm_pageRun(&$page) {
 * @param CRM_Core_Form $form Current form.
 */
 function relationshipContributionACL_civicrm_buildForm($formName, &$form) {
+  //Contribution page edit
   if($form instanceof CRM_Contribute_Form_ContributionPage) {
     $worker = RelationshipContributionACLWorker::getInstance();
     $worker->contributionPageBuildFormHook($form);
@@ -65,6 +68,7 @@ function relationshipContributionACL_civicrm_buildForm($formName, &$form) {
 * @param String $tplName The file name of the tpl - alter this to alter the file in use.
 */
 function relationshipContributionACL_civicrm_alterTemplateFile($formName, &$form, $context, &$tplName) {
+  //Contribution search
   if($form instanceof CRM_Contribute_Form_Search) {
     $worker = RelationshipContributionACLWorker::getInstance();
     $worker->contributionSearchAlterTemplateHook($form);

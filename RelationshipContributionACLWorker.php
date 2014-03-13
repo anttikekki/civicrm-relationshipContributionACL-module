@@ -76,6 +76,7 @@ class RelationshipContributionACLWorker {
   */
   public function contactContributionTabAlterTemplateHook(&$form) {
     $this->filterContributionsSearchFormResults($form);
+    $this->removeContributionsSearchFormResultsSummary($form);
   }
   
   /**
@@ -238,6 +239,7 @@ class RelationshipContributionACLWorker {
   */
   public function contributionSearchAlterTemplateHook(&$form) {
     $this->filterContributionsSearchFormResults($form);
+    $this->removeContributionsSearchFormResultsSummary($form);
     
     //JavaScript adds 'limit=500' to contribution search form action URL to increase pager page size.
     CRM_Core_Resources::singleton()->addScriptFile('com.github.anttikekki.relationshipContributionACL', 'contributionSearchPagerFix.js');
@@ -260,6 +262,19 @@ class RelationshipContributionACLWorker {
   
     $this->filterContributions($rows);
     $template->assign("rows", $rows);
+  }
+  
+  /**
+  * Remove Contribution search summary because it shows wrong data after row permission filtering. 
+  * Summary can not be fixed because we don't have access to second search page data in this template hook.
+  *
+  * @param CRM_Contribute_Form_Search|CRM_Contribute_Page_Tab CiviCRM Page for Contribution search
+  */
+  private function removeContributionsSearchFormResultsSummary(&$form) {
+    $template = $form->getTemplate();
+    $template->assign("summary", array());
+    $template->assign("contributionSummary", array());
+    $template->assign("annual", array());
   }
   
   /**
