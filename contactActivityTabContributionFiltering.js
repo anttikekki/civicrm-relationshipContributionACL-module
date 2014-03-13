@@ -1,12 +1,12 @@
 /**
-* Filters activity rows from Contact Summary Activity tab Ajax result by removing Event participation activities that 
-* belong to Events that current user has no permission to edit or see.
+* Filters activity rows from Contact Summary Activity tab Ajax result by removing Contribution activities that 
+* belong to Contribution pages that current user has no permission to edit or see.
 *
-* Ajax result data do not contain participation or event id directly but it is contained in Participation 
+* Ajax result data do not contain contribution id directly but it is contained in Contribution 
 * edit link URL (in id parameter) from where it is parsed.
 *
-* Example url: http://localhost/drupal/index.php?q=civicrm/contact/view/participant&action=view&reset=1&id=5&cid=8&context=activity
-* Participant id is 5.
+* Example url: http://localhost/drupal/index.php?q=civicrm/contact/view/contribution&action=view&reset=1&id=15&cid=8&context=activity
+* Contribution id is 15.
 */
 cj(function ($) {
   'use strict';

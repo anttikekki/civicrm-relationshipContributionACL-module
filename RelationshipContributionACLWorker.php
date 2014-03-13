@@ -37,17 +37,9 @@ class RelationshipContributionACLWorker {
   /**
   * Config key for civicrm_relationshipContributionACL_config table. This key 
   * stores name of Contribution Custom field group that stores contribution owner contact id.
-  *
-  * @var string
   */
-  protected $configKey_contributionOwnerCustomGroupName = "contributionOwnerCustomGroupName";
-  
-  /**
-  * Page class names processed by this worker. This allows to check that every page is only processed once.
-  *
-  * @var array
-  */
-  protected $processedPageClasses = array();
+  const CONFIG_KEY_CONTRIBUTION_OWNER_CUSTOM_GROUP_NAME = "contributionOwnerCustomGroupName";
+
   
   /**
   * Executed when Contributions Dashboard is built.
@@ -502,7 +494,7 @@ class RelationshipContributionACLWorker {
     $sql = "
       SELECT config_value  
       FROM civicrm_relationshipContributionACL_config
-      WHERE config_key = '".$this->configKey_contributionOwnerCustomGroupName."'
+      WHERE config_key = '".RelationshipContributionACLWorker::CONFIG_KEY_CONTRIBUTION_OWNER_CUSTOM_GROUP_NAME."'
     ";
     
     return CRM_Core_DAO::singleValueQuery($sql);
@@ -526,25 +518,6 @@ class RelationshipContributionACLWorker {
     $contact_id = $values[0]['contact_id'];
     
     return $contact_id;
-  }
-  
-  /**
-  * Is given page already processed by this worker?
-  *
-  * @param CRM_Core_Form|CRM_Core_Page $page
-  * @return boolean 
-  */
-  private function isPageProcessed(&$page) {
-    return in_array(get_class($page), $this->processedPageClasses);
-  }
-  
-  /**
-  * Add given page to processed pages list.
-  *
-  * @param CRM_Core_Form|CRM_Core_Page $page
-  */
-  private function markPageProcessed(&$page) {
-    $this->processedPageClasses[] = get_class($page);
   }
   
   /**
