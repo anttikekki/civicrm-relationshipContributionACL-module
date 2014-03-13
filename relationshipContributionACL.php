@@ -84,6 +84,11 @@ function relationshipContributionACL_civicrm_alterTemplateFile($formName, &$form
     $worker = RelationshipContributionACLWorker::getInstance();
     $worker->contributionDashboardAlterTemplateHook($form);
   }
+  //Contribution reports
+  else if(RelationshipContributionACLWorker::isContributionReportClassName($formName)) {
+    $worker = RelationshipContributionACLWorker::getInstance();
+    $worker->contributionReportsAlterTemplateHook($form);
+  }
 }
 
 /**

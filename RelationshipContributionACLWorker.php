@@ -17,6 +17,14 @@ if(class_exists('CustomFieldHelper') === false) {
   require_once "CustomFieldHelper.php";
 }
 
+/**
+* Only import phpQuery if it is not already loaded. Multiple imports can happen
+* because relationshipEvenACL module uses same phpQuery. 
+*/
+if(class_exists('phpQuery') === false) {
+  require_once "phpQuery.php";
+}
+
 require_once "ContributionPageOwnerDAO.php";
 
 
@@ -40,6 +48,15 @@ class RelationshipContributionACLWorker {
   */
   const CONFIG_KEY_CONTRIBUTION_OWNER_CUSTOM_GROUP_NAME = "contributionOwnerCustomGroupName";
 
+  /**
+  * Executed when any Contribution Report is displayed
+  *
+  * @param CRM_Report_Form $form COntribution Report
+  */
+  public function contributionReportsAlterTemplateHook(&$form) {
+    $this->filterContributionReportCriteriaEvents($form);
+    $this->filterContributionReportResultRows($form);
+  }
   
   /**
   * Executed when Contributions Dashboard is built.
@@ -574,6 +591,126 @@ class RelationshipContributionACLWorker {
     }
     
     return $result;
+  }
+  
+  /**
+  * Filter Contribution Reports Contribution page selection criteria.
+  * Modification has to done to html to get it to work. Editing filters-array 
+  * in template variables has no effects because html for select has already 
+  * been generated.
+  *
+  * @param CRM_Report_Form $form Contribution Report
+  */
+  private function filterContributionReportCriteriaEvents(&$form) {
+    $template = $form->getTemplate();
+    $reportform = $template->get_template_vars("form");
+    
+    $fieldName;
+    if(isset($reportform["contribution_page_id_value"])) {
+      $fieldName = "contribution_page_id_value";
+    }
+    else {
+      return;
+    }
+    
+    $doc = phpQuery::newDocumentHTML($reportform[$fieldName]['html']);
+    
+    //Find all Contribution page ids
+    $contributionPageIds = array();
+    foreach ($doc->find("option") as $selectOption) {
+      $contributionPageIds[] = (int) pq($selectOption)->val();
+    }
+
+    $allowedContributionIds = $this->getAllowedContributionPageIds($contributionPageIds);
+    
+    foreach ($doc->find("option") as $selectOption) {
+      $contributionPageId = (int) pq($selectOption)->val();
+      if(!in_array($contributionPageId, $allowedContributionIds)) {
+        pq($selectOption)->remove();
+      }
+    }
+    
+    $reportform[$fieldName]['html'] = $doc->getDocument();
+    $template->assign("form", $reportform);
+  }
+  
+  /**
+  * Filter Contribution Reports result data
+  *
+  * @param CRM_Report_Form $form Contribution Report
+  */
+  private function filterContributionReportResultRows(&$form) {
+    if($form instanceof CRM_Report_Form_Contribute_Detail) {
+      $this->filterContributionDetailsReportResultRows($form);
+    }
+    else if($form instanceof CRM_Report_Form_Contribute_Bookkeeping) {
+      $this->filterContributionBokkeepingReportResultRows($form);
+    }
+  }
+  
+  /**
+  * Filter Contribution Details Report result data contributions
+  *
+  * @param CRM_Report_Form_Contribute_Detail $form Contribution Details Report
+  */
+  private function filterContributionDetailsReportResultRows(&$form) {
+    $template = $form->getTemplate();
+    $rows = $template->get_template_vars("rows");
+    
+    //Find all Contribution ids
+    $contributionIds = array();
+    foreach ($rows as $index => &$row) {
+      $contributionIds[] = (int) $row["civicrm_contribution_contribution_id"];
+    }
+
+    $allowedContributionIds = $this->getAllowedContributionPageContributionIds($contributionIds);
+    
+    foreach ($rows as $index => &$row) {
+      $contributionId = (int) $row["civicrm_contribution_contribution_id"];
+      
+      if(!in_array($contributionId, $allowedContributionIds)) {
+        unset($rows[$index]);
+      }
+    }
+    $template->assign("rows", $rows);
+  }
+  
+  /**
+  * Filter Contribution Bookkeeping Report result data contributions
+  *
+  * @param CRM_Report_Form_Contribute_Bookkeeping $form Contribution Bookkeeping Report
+  */
+  private function filterContributionBokkeepingReportResultRows(&$form) {
+    $template = $form->getTemplate();
+    $rows = $template->get_template_vars("rows");
+    
+    //Find all Contribution ids
+    $contributionIds = array();
+    foreach ($rows as $index => &$row) {
+      $contributionIds[] = (int) $row["civicrm_contribution_id"];
+    }
+
+    $allowedContributionIds = $this->getAllowedContributionPageContributionIds($contributionIds);
+    
+    foreach ($rows as $index => &$row) {
+      $contributionId = (int) $row["civicrm_contribution_id"];
+      
+      if(!in_array($contributionId, $allowedContributionIds)) {
+        unset($rows[$index]);
+      }
+    }
+    $template->assign("rows", $rows);
+  }
+  
+  /**
+  * Is given class name a Contribution Report class name?
+  *
+  * @param string $formName Class name
+  * @return boolean True if given class name is a Contribution report
+  */
+  public static function isContributionReportClassName($formName) {
+    $reportClassNames = array('CRM_Report_Form_Contribute_Detail', 'CRM_Report_Form_Contribute_Summary', 'CRM_Report_Form_Contribute_Bookkeeping');
+    return in_array($formName, $reportClassNames);
   }
   
   /**
