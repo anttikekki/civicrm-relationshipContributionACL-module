@@ -416,6 +416,10 @@ class RelationshipContributionACLWorker {
   private function checkContributionPageEditPermission(&$form) {
     $contributonPageId = $form->get('id');
     
+    if(!isset($contributonPageId)) {
+      return;
+    }
+    
     $rows = array();
     $rows[$contributonPageId] = array();
     $this->filterContributionPageRows($rows);
