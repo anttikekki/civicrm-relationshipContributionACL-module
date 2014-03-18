@@ -63,6 +63,9 @@ cj(function ($) {
     var contributionPageIdForContributionId = JSON.parse(CRM.relationshipContributionACL.contributionPageIdForContributionId);
     var allowedContributionPageIds = CRM.relationshipContributionACL.allowedContributionPageIds;
     
+    //CiviCRM converts PHP Arrays to JSON. We only need values, not variable names that are old array indexes
+    allowedContributionPageIds = $.map(allowedContributionPageIds, function (value, key) { return value; });
+    
     //Activities are looped from end so that rows can be removed with splice()
     var index = ajaxData.aaData.length;
     while(index--) {
