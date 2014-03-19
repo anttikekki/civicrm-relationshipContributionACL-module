@@ -21,7 +21,9 @@ cj(function ($) {
   };
   
   /**
-  * Get HTML for field label
+  * Get HTML for field label for Owner field
+  *
+  * @return {string} Html for input label
   */
   var getLabelHTML = function() {
     var html = '<label for="ownerContactName">Owner Contact Name</label>' + 
@@ -35,7 +37,9 @@ cj(function ($) {
   };
   
   /**
-  * Get html for imput element
+  * Get html for input element for Owner field
+  *
+  * @return {string} Html for input element
   */
   var getInputHTML = function() {
     var html = '<input type="text" class="form-text" id="ownerContactName" name="ownerContactName" value="' + CRM.relationshipContributionACL.ownerContactName + '">';
@@ -49,6 +53,8 @@ cj(function ($) {
   
   /**
   * Returns possible error message for this field
+  *
+  * @return {string} Error message for field. Null if no error is found.
   */
   var getError = function() {
     if(CRM.relationshipContributionACL.ownerContactName_emptyErrorMessgage) {
@@ -57,22 +63,12 @@ cj(function ($) {
     return null;
   };
   
-  /**
-  * Returns parameter from browser URL.
-  *
-  * Code from http://stackoverflow.com/a/901144
-  */
-  var getURLParameterByName = function(name) {
-    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)");
-    var results = regex.exec(location.search);
-    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-  };
-  
-  if(getURLParameterByName('q') == 'civicrm/admin/contribute/add') {
+  //Check URL is for creating new Cotribution page
+  if(document.URL.indexOf('civicrm/admin/contribute/add') !== -1) {
     //Add view does not contain tabs. Create element just once.
     createOwnerElement();
   }
+  //We are not creating new Contribution page but editing a old one so there is tabs
   else {
     //Listen Title-tab load-event and create new Owner element. crmFormLoad event is sent by jQuery tabs-plugin.
     $('#Title').bind('crmFormLoad', function(e){
