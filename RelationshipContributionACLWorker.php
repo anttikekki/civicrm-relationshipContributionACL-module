@@ -16,6 +16,7 @@ RelationshipACLQueryWorker::checkVersion("1.1");
 if(class_exists('CustomFieldHelper') === false) {
   require_once "CustomFieldHelper.php";
 }
+CustomFieldHelper::checkVersion("1.1");
 
 /**
 * Only import phpQuery if it is not already loaded. Multiple imports can happen
@@ -44,9 +45,9 @@ class RelationshipContributionACLWorker {
 
   /**
   * Config key for civicrm_relationshipContributionACL_config table. This key 
-  * stores name of Contribution Custom field group that stores contribution owner contact id.
+  * stores id of Contribution Custom field that stores contribution owner contact id.
   */
-  const CONFIG_KEY_CONTRIBUTION_OWNER_CUSTOM_GROUP_NAME = "contributionOwnerCustomGroupName";
+  const CONFIG_KEY_CONTRIBUTION_OWNER_CUSTOM_FIELD_ID = "contributionOwnerCustomFieldId";
 
   /**
   * Executed when any Contribution Report is displayed
@@ -206,7 +207,7 @@ class RelationshipContributionACLWorker {
     }
   
     //Update custom field to Contribution page owner contact id
-    $worker = new CustomFieldHelper($this->getContributionOwnerCustomGroupNameFromConfig());
+    $worker = new CustomFieldHelper($this->getContributionOwnerCustomFieldIdFromConfig());
     $worker->insertOrUpdateValue($contributionId, $ownerContactId);
   }
   
@@ -521,19 +522,19 @@ class RelationshipContributionACLWorker {
   }
   
   /**
-  * Return Contribution custom field group name that is used to store contribution 
+  * Return Contribution custom field id that is used to store contribution 
   * owner contact id.
   *
-  * @return string Custom field group title name.
+  * @return int Custom field id.
   */
-  private function getContributionOwnerCustomGroupNameFromConfig() {
+  private function getContributionOwnerCustomFieldIdFromConfig() {
     $sql = "
       SELECT config_value  
       FROM civicrm_relationshipContributionACL_config
-      WHERE config_key = '".RelationshipContributionACLWorker::CONFIG_KEY_CONTRIBUTION_OWNER_CUSTOM_GROUP_NAME."'
+      WHERE config_key = '".RelationshipContributionACLWorker::CONFIG_KEY_CONTRIBUTION_OWNER_CUSTOM_FIELD_ID."'
     ";
     
-    return CRM_Core_DAO::singleValueQuery($sql);
+    return (int) CRM_Core_DAO::singleValueQuery($sql);
   }
   
   /**
