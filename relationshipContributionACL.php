@@ -93,6 +93,20 @@ function relationshipContributionACL_civicrm_alterTemplateFile($formName, &$form
     $worker = RelationshipContributionACLWorker::getInstance();
     $worker->contributionReportsAlterTemplateHook($form);
   }
+  //Extension admin page
+  else if($form instanceof Admin_Page_RelationshipContributionACLAdmin) {
+    $res = CRM_Core_Resources::singleton();
+    $res->addScriptFile('com.github.anttikekki.relationshipContributionACL', 'Admin/Page/admin.js');
+    
+    //Add CMS neutral ajax callback URLs
+    $res->addSetting(array('relationshipContributionACL' => 
+      array(
+        'getConfigAjaxURL' =>  CRM_Utils_System::url('civicrm/relationshipContributionACL/settings/ajax/getConfig'),
+        'saveConfigRowAjaxURL' =>  CRM_Utils_System::url('civicrm/relationshipContributionACL/settings/ajax/saveConfigRow'),
+        'deleteConfigRowAjaxURL' =>  CRM_Utils_System::url('civicrm/relationshipContributionACL/settings/ajax/deleteConfigRow')
+      )
+    ));
+  }
 }
 
 /**
@@ -147,7 +161,78 @@ function relationshipContributionACL_civicrm_postSave_civicrm_contribution(&$dao
 * @param Array $params Navigation menu structure.
 */
 function relationshipContributionACL_civicrm_navigationMenu(&$params) {
+  //Edit Manage Contribution pages menu
   $url = $params[29]["child"][43]["attributes"]["url"];
   $url = $url . "&crmRowCount=9999999";
   $params[29]["child"][43]["attributes"]["url"] = $url;
+  
+  /*
+  * Add admin menu for extension
+  */
+  //Find last index of Administer menu children
+  $maxKey = max(array_keys($params[108]['child']));
+  
+  //Add extension menu as Admin menu last children
+  $params[108]['child'][$maxKey+1] = array(
+     'attributes' => array (
+        'label'      => 'RelationshipContributionACL',
+        'name'       => 'RelationshipContributionACL',
+        'url'        => null,
+        'permission' => null,
+        'operator'   => null,
+        'separator'  => null,
+        'parentID'   => null,
+        'navID'      => $maxKey+1,
+        'active'     => 1
+      ),
+     'child' =>  array (
+        '1' => array (
+          'attributes' => array (
+             'label'      => 'Settings',
+             'name'       => 'Settings',
+             'url'        => 'civicrm/relationshipContributionACL/settings',
+             'permission' => 'administer CiviCRM',
+             'operator'   => null,
+             'separator'  => 1,
+             'parentID'   => $maxKey+1,
+             'navID'      => 1,
+             'active'     => 1
+              ),
+          'child' => null
+        )
+      )
+  );
+}
+
+/**
+* Implemets CiviCRM 'config' hook.
+*
+* @param object $config the config object
+*/
+function relationshipContributionACL_civicrm_config(&$config) {
+  $template =& CRM_Core_Smarty::singleton();
+  $extensionDir = dirname(__FILE__);
+ 
+  // Add extension template directory to the Smarty templates path
+  if (is_array($template->template_dir)) {
+    array_unshift($template->template_dir, $extensionDir);
+  }
+  else {
+    $template->template_dir = array($extensionDir, $template->template_dir);
+  }
+
+  //Add extension folder to included folders list so that Ajax php is found whe accessin it from URL
+  $include_path = $extensionDir . DIRECTORY_SEPARATOR . PATH_SEPARATOR . get_include_path();
+  set_include_path($include_path);
+}
+
+/**
+* Implemets CiviCRM 'xmlMenu' hook.
+*
+* @param array $files the array for files used to build the menu. You can append or delete entries from this file. 
+* You can also override menu items defined by CiviCRM Core.
+*/
+function relationshipContributionACL_civicrm_xmlMenu( &$files ) {
+  //Add Ajax and Admin page URLs to civicrm_menu table so that they work
+  $files[] = dirname(__FILE__)."/menu.xml";
 }
