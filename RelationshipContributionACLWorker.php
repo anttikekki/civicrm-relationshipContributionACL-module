@@ -469,6 +469,11 @@ class RelationshipContributionACLWorker {
   private function filterContributionPageRows(&$rows) {
     $allowedContributionPageIds = $this->getAllowedContributionPageIds();
     
+    //If there are no contribution pages do not continue filtering
+    if(!is_array($rows)) {
+      return;
+    }
+    
     foreach ($rows as $contibutionPageId => &$row) {
       //If logged in user contact ID is not allowed to edit Contribution page, remove page from array
       if(!in_array($contibutionPageId, $allowedContributionPageIds)) {
