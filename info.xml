@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <extension key="com.github.anttikekki.relationshipContributionACL" type="module">
-  <downloadUrl>https://github.com/anttikekki/civicrm-relationshipContributionACL-module/archive/1.8.zip</downloadUrl>
+  <downloadUrl>https://github.com/anttikekki/civicrm-relationshipContributionACL-module/archive/1.9.zip</downloadUrl>
   <file>relationshipContributionACL</file>
   <name>Relationship Contribution ACL Module</name>
   <description>Adds owner field to Contribution page. Makes allowed contribution pages visible and editable only to users that have edit permissions through relationships to contribution page owner.</description>
@@ -15,8 +15,8 @@
     <author>Antti Kekki</author>
     <email>anttikekki@gmail.com</email>
   </maintainer>
-  <releaseDate>2014-07-03</releaseDate>
-  <version>1.8</version>
+  <releaseDate>2014-09-02</releaseDate>
+  <version>1.9</version>
   <develStage>stable</develStage>
   <compatibility>
     <ver>4.4</ver>
