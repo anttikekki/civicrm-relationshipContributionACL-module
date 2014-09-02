@@ -535,7 +535,7 @@ class RelationshipContributionACLWorker {
   private function getContributionOwnerCustomFieldIdFromConfig() {
     $sql = "
       SELECT config_value  
-      FROM civicrm_relationshipContributionACL_config
+      FROM civicrm_relationshipcontributionACL_config
       WHERE config_key = '".RelationshipContributionACLWorker::CONFIG_KEY_CONTRIBUTION_OWNER_CUSTOM_FIELD_ID."'
     ";
     
