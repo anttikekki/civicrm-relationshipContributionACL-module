@@ -44,7 +44,7 @@ class RelationshipContributionACLWorker {
   private static $instance = null;
 
   /**
-  * Config key for civicrm_relationshipContributionACL_config table. This key 
+  * Config key for civicrm_relationshipcontributionacl_config table. This key 
   * stores id of Contribution Custom field that stores contribution owner contact id.
   */
   const CONFIG_KEY_CONTRIBUTION_OWNER_CUSTOM_FIELD_ID = "contributionOwnerCustomFieldId";
@@ -535,7 +535,7 @@ class RelationshipContributionACLWorker {
   private function getContributionOwnerCustomFieldIdFromConfig() {
     $sql = "
       SELECT config_value  
-      FROM civicrm_relationshipcontributionACL_config
+      FROM civicrm_relationshipcontributionacl_config
       WHERE config_key = '".RelationshipContributionACLWorker::CONFIG_KEY_CONTRIBUTION_OWNER_CUSTOM_FIELD_ID."'
     ";
     
