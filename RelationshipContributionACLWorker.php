@@ -345,21 +345,13 @@ class RelationshipContributionACLWorker {
   
   /**
   * Iterates array of Contribution Page ids and removes Contributions Page ids that  
-  * current logged in user does not have editing rights. Editing rights are based on relationship tree.
+  * current logged in user does not have editing rights. Editing rights are based on relationship tree. 
+  * Administrator can see all contribution pages.
   *
-  * @param array $contributionPageIds Array of Contribution Page ids. If null or missingg, all Contribution Page ids are searched.
+  * @param array $contributionPageIds Array of Contribution Page ids. If null or missing, all Contribution Page ids are searched.
   * @return array Array of allowed Contribution Page ids
   */
   private function getAllowedContributionPageIds($contributionPageIds = NULL) {
-    $currentUserContactID = $this->getCurrentUserContactID();
-    
-    //All contact IDs the current logged in user has rights to edit through relationships
-    $worker = RelationshipACLQueryWorker::getInstance();
-    $allowedContactIDs = $worker->getContactIDsWithEditPermissions($currentUserContactID);
-    
-    //Array with Contribution page ID as key and owner contact ID as value
-    $ownerMap = ContributionPageOwnerDAO::loadAllContributionPagesOwnerContactId();
-    
     //If set of Contribution page ids is not specified, load all Contribution page ids
     if(!isset($contributionPageIds)) {
       $sql = "
@@ -374,6 +366,20 @@ class RelationshipContributionACLWorker {
         $contributionPageIds[] = $dao->id;
       }
     }
+
+    //Administrator can see all contribution pages
+    if(user_access('administer CiviCRM')) {
+      return $contributionPageIds;
+    }
+
+    $currentUserContactID = $this->getCurrentUserContactID();
+    
+    //All contact IDs the current logged in user has rights to edit through relationships
+    $worker = RelationshipACLQueryWorker::getInstance();
+    $allowedContactIDs = $worker->getContactIDsWithEditPermissions($currentUserContactID);
+    
+    //Array with Contribution page ID as key and owner contact ID as value
+    $ownerMap = ContributionPageOwnerDAO::loadAllContributionPagesOwnerContactId();
     
     foreach ($contributionPageIds as $index => &$contributionPageId) {    
       //Skip Contribution pages that does not yet have owner info. These are always visible.
